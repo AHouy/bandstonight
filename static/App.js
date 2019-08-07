@@ -52,7 +52,7 @@ class Home extends React.Component {
   }
 
   handleLoginClick() {
-    var redirect_uri = `${window.location.href}callback/`; // Your redirect uri
+    var redirect_uri = `${window.location.origin}/callback/`; // Your redirect uri
     var state = generateRandomString(16);
     localStorage.setItem(stateKey, state);
     var scope =
