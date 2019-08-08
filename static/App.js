@@ -19,16 +19,24 @@ class App extends React.Component {
   render() {
     return (
       <Router>
-        <div class="jumbotron">
-          <div class="container text-center">
+        <div className="jumbotron">
+          <div className="container text-center">
             <h1>Bands Tonight</h1>
-            <h4 class="text-muted">
+            <h4 className="text-muted">
               Creating a Spotify playlist of the bands that are playing shows
               tonight!
             </h4>
+            <p style={{ fontSize: "100px" }}>
+              <a href="https://www.instagram.com/steeze_nasty/" target="_blank">
+                <i className="fa fa-instagram mr-3" />
+              </a>
+              <a href="https://github.com/AHouy/bandstonight" target="_blank">
+                <i className="fa fa-github" />
+              </a>
+            </p>
           </div>
         </div>
-        <div class="container">
+        <div className="container">
           {/* <Link to="/">HOME</Link> */}
           <Switch>
             <Route path="/" exact component={Home} />
@@ -91,13 +99,21 @@ class User extends React.Component {
       isLoaded: false,
       spotifyUser: spotifyUser,
       user: { images: [{ url: null }] },
-      songkickData: null
+      // songkickData: null,
+      location: "",
+      locations: [],
+      city: ""
     };
+    this.handleSubmit = this.handleSubmit.bind(this);
   }
 
   componentDidMount() {
     this.fetchUser();
-    this.fetchSongkick();
+  }
+
+  handleSubmit(event) {
+    this.fetchLocation();
+    event.preventDefault();
   }
 
   async fetchUser() {
@@ -114,15 +130,30 @@ class User extends React.Component {
     console.log(data);
   }
 
-  async fetchSongkick() {
-    const data = await fetch("/songkick").then(res => res.json());
-    this.setState({ songkickData: data });
+  async fetchLocation() {
+    const data = await fetch(`/location?q=${this.state.location}`).then(res =>
+      res.json()
+    );
+    this.setState(state => {
+      let result = { locations: data };
+      if (data.length > 0) result.city = data[0].metroArea.id;
+      else result.city = "";
+      return result;
+    });
   }
 
   renderUser() {
     return (
       <div className="media">
-        <img className="mr-3" src={this.state.user.images[0].url} />
+        <img
+          className="mr-3"
+          width="150"
+          src={
+            this.state.user.images.length > 0
+              ? this.state.user.images[0].url
+              : ""
+          }
+        />
         <div className="media-body">
           <h5 className="mt-0">Logged in as {this.state.user.display_name}</h5>
         </div>
@@ -130,14 +161,52 @@ class User extends React.Component {
     );
   }
 
-  renderSongkickConcerts() {
-    if (this.state.songkickData !== null) {
-      return this.state.songkickData.map(data => (
-        <div className="row border-bottom">
-          <SongkickConcert songkickData={data} />
+  renderLocationSearch() {
+    return (
+      <div className="input-group mb-3">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="City"
+          value={this.state.location}
+          onChange={event => this.setState({ location: event.target.value })}
+        />
+        <div className="input-group-append">
+          <button
+            className="btn btn-dark"
+            type="button"
+            onClick={this.handleSubmit}
+          >
+            Search
+          </button>
         </div>
-      ));
-    }
+      </div>
+    );
+  }
+
+  renderLocations() {
+    if (this.state.locations.length > 0)
+      return (
+        <select
+          className="form-control"
+          value={this.state.city}
+          onChange={event => this.setState({ city: event.target.value })}
+        >
+          {this.state.locations.map(location => {
+            let metroArea = location.metroArea;
+            let display;
+            if (metroArea.state)
+              display = `${metroArea.displayName}, ${
+                metroArea.state.displayName
+              }, ${metroArea.country.displayName}`;
+            else
+              display = `${metroArea.displayName}, ${
+                metroArea.country.displayName
+              }`;
+            return <option value={location.metroArea.id}>{display}</option>;
+          })}
+        </select>
+      );
   }
 
   render() {
@@ -147,24 +216,108 @@ class User extends React.Component {
           <div id="loggedin">
             <div id="user-profile">{this.renderUser()}</div>
           </div>
-          <SpotifyPlaylistGenerator />
-          {this.renderSongkickConcerts()}
+          <div className="row mt-3 mb-3">
+            <div className="col-md-6">{this.renderLocationSearch()}</div>
+            <div className="col-md-6">{this.renderLocations()}</div>
+          </div>
+          <Concert city={this.state.city} user={this.state.user} />
         </React.Fragment>
       );
     else return <div className="loader" />;
   }
 }
 
-function SongkickConcert(props) {
-  console.log(props);
+class Concert extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = { data: [], isLoading: false };
+  }
+
+  async fetchConcert() {
+    if (this.props.city) {
+      const data = await fetch(
+        `/bandstonight?location=${this.props.city}`
+      ).then(res => res.json());
+      this.setState({
+        data: data.sort((a, b) => {
+          let x = a.event.start.time;
+          let y = b.event.start.time;
+          if (x < y) {
+            return -1;
+          }
+          if (x > y) {
+            return 1;
+          }
+          return 0;
+        }),
+        isLoading: false
+      });
+    }
+  }
+
+  componentDidMount() {
+    this.fetchConcert();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (this.props.city !== prevProps.city) {
+      this.setState({ isLoading: true });
+      this.fetchConcert();
+    }
+  }
+
+  render() {
+    if (this.state.isLoading)
+      return (
+        <div className="mt-2 mb-2">
+          <h4 className="text-muted text-center">
+            Getting tonight's concerts and bands...
+          </h4>
+          <div className="loader mx-auto" />
+        </div>
+      );
+    if (this.props.city)
+      return (
+        <React.Fragment>
+          <SpotifyPlaylistGenerator
+            user={this.props.user}
+            location={
+              this.state.data.length !== 0
+                ? this.state.data[0].event.venue.metroArea.displayName +
+                  ", " +
+                  this.state.data[0].event.venue.metroArea.state.displayName
+                : ""
+            }
+            date={
+              this.state.data.length !== 0
+                ? this.state.data[0].event.start.date
+                : ""
+            }
+          />
+          {this.state.data.map(data => (
+            <ConcertInfo artists={data.artists} event={data.event} />
+          ))}
+        </React.Fragment>
+      );
+    return "";
+  }
+}
+
+function ConcertInfo(props) {
   return (
     <ul className="list-unstyled" style={{ width: "100%" }}>
       <li className="media">
         <div className="media-body">
-          <h5 className="mt-3">{props.songkickData.displayName}</h5>
+          <h5 className="mt-3">
+            <a href={props.event.uri} target="_blank">
+              {props.event.displayName}
+              {props.event.start.time ? " @ " + props.event.start.time : ""}
+            </a>
+          </h5>
           <div>
-            {props.songkickData.performance.map((performance, i) => (
-              <Artist artist={performance.displayName} key={i} />
+            {props.artists.map(artist => (
+              <Artist artist={artist} key={artist.id} />
             ))}
           </div>
         </div>
@@ -178,77 +331,40 @@ class Artist extends React.Component {
     super(props);
 
     this.state = {
-      spotifyUser: spotifyUser,
       include: true
     };
     this.handleButtonClick = this.handleButtonClick.bind(this);
-  }
-
-  componentDidMount() {
-    this.fetchSpotifyArtist();
   }
 
   handleButtonClick() {
     this.setState(state => ({ include: !state.include }));
   }
 
-  async fetchSpotifyArtist() {
-    const data = await fetch(
-      `https://api.spotify.com/v1/search?q=${this.props.artist}&type=artist`,
-      {
-        headers: {
-          Authorization: `Bearer ${this.state.spotifyUser.accessToken}`
-        }
-      }
-    )
-      .then(res => res.json())
-      .then(data => data.artists);
-    console.log(data);
-    for (let artist of data.items)
-      if (
-        artist.name
-          .normalize("NFD")
-          .replace(/[^\w]/g, "")
-          .toLowerCase() ===
-        this.props.artist
-          .normalize("NFD")
-          .replace(/[^\w]/g, "")
-          .toLowerCase()
-      ) {
-        this.setState({
-          artist: {
-            image: artist.images[0].url,
-            id: artist.id,
-            genres: artist.genres
-          }
-        });
-        return;
-      }
-  }
-
   render() {
-    if (this.state.artist)
+    if (this.props.artist.spotify)
       return (
         <div
           className={this.state.include ? "media mt-3 artist" : "media mt-3"}
-          dataSpotifyId={this.state.artist.id}
+          dataSpotifyId={this.props.artist.id}
         >
           <img
             className="mr-3"
-            src={this.state.artist.image}
-            alt={this.props.artist}
+            src={this.props.artist.image}
+            alt={this.props.artist.name}
             width="100px"
           />
           <div className="media-body">
-            <h5 className="mt-0">{this.props.artist}</h5>
+            <h5 className="mt-0">{this.props.artist.name}</h5>
             <p className="text-muted">
-              <b>{this.state.artist.genres.join(", ")}</b>
+              <b>{this.props.artist.genres.join(", ")}</b>
             </p>
           </div>
           <div className="ml-3 align-self-center">
             <button
               type="button"
-              class={this.state.include ? "btn btn-danger" : "btn btn-success"}
+              className={
+                this.state.include ? "btn btn-danger" : "btn btn-success"
+              }
               onClick={this.handleButtonClick}
             >
               {this.state.include ? "Remove from Playlist" : "Add to Playlist"}
@@ -262,13 +378,13 @@ class Artist extends React.Component {
           <img
             className="mr-3"
             src="https://via.placeholder.com/100"
-            alt={this.props.artist}
+            alt={this.props.artist.name}
             width="100px"
           />
           <div className="media-body">
             <h5 className="mt-0">
-              {this.props.artist}
-              <span className="text-danger"> - Not on Spotify</span>
+              {this.props.artist.name} -{" "}
+              <span className="text-danger">Could not find on Spotify</span>
             </h5>
           </div>
         </div>
@@ -282,6 +398,10 @@ class SpotifyPlaylistGenerator extends React.Component {
 
     this.state = { spotifyUser: spotifyUser, playlist: null, isLoading: false };
     this.handleButtonClick = this.handleButtonClick.bind(this);
+  }
+
+  componentDidMount() {
+    console.log(this.props.user);
   }
 
   handleButtonClick() {
@@ -300,47 +420,54 @@ class SpotifyPlaylistGenerator extends React.Component {
       method: "post",
       body: JSON.stringify({
         accessToken: this.state.spotifyUser.accessToken,
-        userId: 122514778,
-        location: "Austin, TX",
+        userId: this.props.user.id,
+        location: this.props.location,
+        date: this.props.date,
         artistSpotifyIds: artistSpotifyIds
       })
     })
       .then(res => res.json())
-      .then(data => this.setState({ playlist: data.id }));
+      .then(data => this.setState({ playlist: data.id, isLoading: false }));
   }
 
   render() {
-    if (this.state.playlist)
-      return (
-        <div width="300px" className="mx-auto mt-2 mb-2">
-          <iframe
-            src={`https://open.spotify.com/embed/playlist/${
-              this.state.playlist
-            }`}
-            width="300"
-            height="380"
-            frameborder="0"
-            allowtransparency="true"
-            allow="encrypted-media"
-          />
-        </div>
-      );
-    else if (this.state.isLoading)
-      return (
-        <div className="mt-2 mb-2">
-          <h4 className="text-muted text-center">Generating playlist...</h4>
-          <div className="loader mx-auto" />
-        </div>
-      );
-    return (
+    let button = (
       <button
         type="button"
         onClick={this.handleButtonClick}
-        class="btn btn-secondary btn-lg btn-block"
+        className="btn btn-secondary btn-lg btn-block"
       >
-        Generate Playlist!
+        Generate {this.state.playlist ? "another " : ""}Playlist!
       </button>
     );
+    if (this.state.isLoading)
+      return (
+        <div className="mt-2 mb-2">
+          <h4 className="text-muted text-center">
+            Generating {this.state.playlist ? "another " : ""}playlist...
+          </h4>
+          <div className="loader mx-auto" />
+        </div>
+      );
+    if (this.state.playlist)
+      return (
+        <React.Fragment>
+          {button}
+          <div className="mx-auto mt-2 mb-2" style={{ width: "300px" }}>
+            <iframe
+              src={`https://open.spotify.com/embed/playlist/${
+                this.state.playlist
+              }`}
+              width="300"
+              height="380"
+              frameborder="0"
+              allowtransparency="true"
+              allow="encrypted-media"
+            />
+          </div>
+        </React.Fragment>
+      );
+    return button;
   }
 }
 
