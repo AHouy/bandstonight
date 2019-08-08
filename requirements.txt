@@ -1,4 +1,6 @@
 eventbrite==3.3.3
 Flask==1.1.1
+Flask-Caching==1.7.2
 gunicorn==19.9.0
 requests==2.22.0
+spotipy==2.4.4
