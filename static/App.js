@@ -277,21 +277,22 @@ class Concert extends React.Component {
           <div className="loader mx-auto" />
         </div>
       );
-    if (this.props.city)
+    if (this.props.city) {
+      let stateOrCountry =
+        this.state.data[0].event.venue.metroArea.state ||
+        this.state.data[0].event.venue.metroArea.country;
+      let location =
+        this.state.data.length !== 0
+          ? this.state.data[0].event.venue.metroArea.displayName +
+            ", " +
+            stateOrCountry.displayName
+          : "";
+
       return (
         <React.Fragment>
           <SpotifyPlaylistGenerator
             user={this.props.user}
-            location={() => {
-              let stateOrCountry =
-                this.state.data[0].event.venue.metroArea.state ||
-                this.state.data[0].event.venue.metroArea.country;
-              return this.state.data.length !== 0
-                ? this.state.data[0].event.venue.metroArea.displayName +
-                    ", " +
-                    stateOrCountry.displayName
-                : "";
-            }}
+            location={location}
             date={
               this.state.data.length !== 0
                 ? this.state.data[0].event.start.date
@@ -303,6 +304,7 @@ class Concert extends React.Component {
           ))}
         </React.Fragment>
       );
+    }
     return "";
   }
 }
