@@ -130,4 +130,4 @@ def add_tracks_to_playlist(access_token, playlist_track_endpoint, uris):
 
 
 if __name__ == "__main__":
-    app.run(debug=os.environ.get("DEBUG") !== "False")
+    app.run(debug=os.environ.get("DEBUG") != "False")
