@@ -13,7 +13,12 @@ from spotipy.oauth2 import SpotifyClientCredentials
 app = Flask(__name__)
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
 eventbrite = Eventbrite(os.environ.get("EVENTBRITE_API_KEY"))
-spotify = Spotify(client_credentials_manager=SpotifyClientCredentials())
+spotify = Spotify(
+    client_credentials_manager=SpotifyClientCredentials(
+        client_id="1f7907c2586b42bdb2f62ec317dfff13",
+        client_secret="28883c64309c4179bf862ef6f710aa12",
+    )
+)
 
 
 @app.route("/", defaults={"path": None})
@@ -62,7 +67,20 @@ def fetch_location_id():
     r = requests.get(
         "https://api.songkick.com/api/3.0/search/locations.json", params=data
     ).json()["resultsPage"]
-    return jsonify(r["results"]["location"])
+    return jsonify(remove_duplicates(r["results"]["location"]))
+
+
+def remove_duplicates(locations):
+    result = []
+    for location in locations:
+        duplicate = False
+        for val in result:
+            if val["metroArea"]["id"] == location["metroArea"]["id"]:
+                duplicate = True
+                break
+        if not duplicate:
+            result.append(location)
+    return result
 
 
 @app.route("/bandstonight")
