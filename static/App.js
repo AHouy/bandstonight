@@ -164,24 +164,26 @@ class User extends React.Component {
 
   renderLocationSearch() {
     return (
-      <div className="input-group mb-3">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="City"
-          value={this.state.location}
-          onChange={event => this.setState({ location: event.target.value })}
-        />
-        <div className="input-group-append">
-          <button
-            className="btn btn-dark"
-            type="button"
-            onClick={this.handleSubmit}
-          >
-            Search
-          </button>
+      <form>
+        <div className="input-group mb-3">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="City"
+            value={this.state.location}
+            onChange={event => this.setState({ location: event.target.value })}
+          />
+          <div className="input-group-append">
+            <button
+              className="btn btn-dark"
+              type="submit"
+              onClick={this.handleSubmit}
+            >
+              Search
+            </button>
+          </div>
         </div>
-      </div>
+      </form>
     );
   }
 
