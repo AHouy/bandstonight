@@ -109,6 +109,7 @@ class User extends React.Component {
 
   componentDidMount() {
     this.fetchUser();
+    this.fetchLocation();
   }
 
   handleSubmit(event) {
@@ -277,7 +278,7 @@ class Concert extends React.Component {
       loader = (
         <div className="mt-2 mb-2">
           <h4 className="text-muted text-center">
-            Getting tonight's {this.state.data.length > 0 ? "more " : ""}
+            Getting {this.state.data.length > 0 ? "more of " : ""}tonight's
             concerts and bands...
           </h4>
           <div className="loader mx-auto" />
