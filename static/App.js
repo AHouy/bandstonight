@@ -278,16 +278,16 @@ class Concert extends React.Component {
         </div>
       );
     if (this.props.city) {
-      let stateOrCountry =
-        this.state.data[0].event.venue.metroArea.state ||
-        this.state.data[0].event.venue.metroArea.country;
-      let location =
-        this.state.data.length !== 0
-          ? this.state.data[0].event.venue.metroArea.displayName +
-            ", " +
-            stateOrCountry.displayName
-          : "";
-
+      let stateOrCountry, location;
+      if (this.state.data.length !== 0) {
+        stateOrCountry =
+          this.state.data[0].event.venue.metroArea.state ||
+          this.state.data[0].event.venue.metroArea.country;
+        location =
+          this.state.data[0].event.venue.metroArea.displayName +
+          ", " +
+          stateOrCountry.displayName;
+      }
       return (
         <React.Fragment>
           <SpotifyPlaylistGenerator
