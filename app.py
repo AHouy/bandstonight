@@ -39,15 +39,6 @@ def tbn():
     return result
 
 
-def get_metro_area_id():
-    params = {"apikey": os.environ.get("SONGKICK_API_KEY"), "query": "Austin, TX"}
-    r = requests.get(
-        "https://api.songkick.com/api/3.0/search/locations.json", params=params
-    ).json()["resultsPage"]
-    # if r["results"]:
-    return r
-
-
 @app.route("/location")
 @cache.cached(query_string=True)
 def fetch_location_id():
@@ -57,7 +48,8 @@ def fetch_location_id():
     if "q" in request.args and request.args.get("q"):
         data["query"] = request.args.get("q")
     else:
-        data["location"] = f"ip:{request.remote_addr}"
+        ip = request.environ.get("HTTP_X_FORWARDED_FOR" or request.args.get(ip))
+        data["location"] = f"ip:{ip}"
 
     # Do the API call
     r = requests.get(
@@ -238,4 +230,4 @@ def strip_accents(text):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
