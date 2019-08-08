@@ -7,11 +7,13 @@ import requests
 from eventbrite import Eventbrite
 from flask import Flask, jsonify, render_template, request
 from flask_caching import Cache
+from flask_webpack_loader import WebpackLoader
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials
 
 app = Flask(__name__)
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
+webpack = WebpackLoader(app)
 eventbrite = Eventbrite(os.environ.get("EVENTBRITE_API_KEY"))
 spotify = Spotify(client_credentials_manager=SpotifyClientCredentials())
 
@@ -81,12 +83,13 @@ def remove_duplicates(locations):
 @app.route("/bandstonight")
 @cache.cached(query_string=True)
 def fetch_artists():
-    if "location" in request.args and request.args.get("location"):
-        location = f"sk:{request.args.get('location')}"
-    else:
-        location = f"ip:{request.remote_addr}"
+    location = f"sk:{request.args.get('location')}"
     page = int(request.args.get("page", 1))
-    day = request.args.get("date") if "date" in request.args else date.today()
+    day = (
+        request.args.get("date")
+        if "date" in request.args and request.args.get("date")
+        else date.today()
+    )
 
     # Set up parameters for api call
     data = {
@@ -137,7 +140,9 @@ def fetch_artists():
                             )
             l.append(d)
     if r["perPage"] * page <= r["totalEntries"]:
-        r["next"] = f"/bandstonight?location={location.split(':')[-1]}&page={page + 1}"
+        r[
+            "next"
+        ] = f"/bandstonight?location={location.strip('sk:')}&page={page + 1}&date={day}"
     else:
         r["next"] = None
     r["results"] = l
