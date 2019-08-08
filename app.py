@@ -58,7 +58,7 @@ def fetch_location_id():
     if "location" in r["results"]:
         return jsonify(remove_duplicates(r["results"]["location"]))
     else:
-        return []
+        return jsonify([])
 
 
 def remove_duplicates(locations):
