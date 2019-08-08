@@ -208,6 +208,7 @@ class User extends React.Component {
           })}
         </select>
       );
+    else return <p className="text-muted text-center">No locations found.</p>;
   }
 
   render() {
