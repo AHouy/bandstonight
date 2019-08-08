@@ -48,7 +48,11 @@ def fetch_location_id():
     if "q" in request.args and request.args.get("q"):
         data["query"] = request.args.get("q")
     else:
-        ip = request.environ.get("HTTP_X_FORWARDED_FOR" or request.args.get(ip))
+        ip = (
+            request.environ.get("HTTP_X_FORWARDED_FOR")
+            or request.args.get("ip")
+            or request.remote_addr
+        )
         data["location"] = f"ip:{ip}"
 
     # Do the API call
