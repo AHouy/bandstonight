@@ -13,12 +13,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 app = Flask(__name__)
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
 eventbrite = Eventbrite(os.environ.get("EVENTBRITE_API_KEY"))
-spotify = Spotify(
-    client_credentials_manager=SpotifyClientCredentials(
-        client_id="1f7907c2586b42bdb2f62ec317dfff13",
-        client_secret="28883c64309c4179bf862ef6f710aa12",
-    )
-)
+spotify = Spotify(client_credentials_manager=SpotifyClientCredentials())
 
 
 @app.route("/", defaults={"path": None})
@@ -54,6 +49,7 @@ def get_metro_area_id():
 
 
 @app.route("/location")
+@cache.cached(query_string=True)
 def fetch_location_id():
     data = {"apikey": os.environ.get("SONGKICK_API_KEY")}
 
@@ -67,7 +63,10 @@ def fetch_location_id():
     r = requests.get(
         "https://api.songkick.com/api/3.0/search/locations.json", params=data
     ).json()["resultsPage"]
-    return jsonify(remove_duplicates(r["results"]["location"]))
+    if "location" in r["results"]:
+        return jsonify(remove_duplicates(r["results"]["location"]))
+    else:
+        return []
 
 
 def remove_duplicates(locations):
@@ -84,25 +83,22 @@ def remove_duplicates(locations):
 
 
 @app.route("/bandstonight")
+@cache.cached(query_string=True)
 def fetch_artists():
     if "location" in request.args and request.args.get("location"):
         location = f"sk:{request.args.get('location')}"
     else:
         location = f"ip:{request.remote_addr}"
-
-    key = f"{location}-{date.today()}"
-    cached_data = cache.get(key)
-    if cached_data:
-        return cached_data
-
+    page = int(request.args.get("page", 1))
     day = request.args.get("date") if "date" in request.args else date.today()
+
     # Set up parameters for api call
     data = {
         "apikey": os.environ.get("SONGKICK_API_KEY"),
         "location": location,
         "min_date": day,
         "max_date": day,
-        "page": 1,
+        "page": page,
     }
     r = requests.get(
         "https://api.songkick.com/api/3.0/events.json", params=data
@@ -110,21 +106,20 @@ def fetch_artists():
 
     # List to hold our result
     l = []
-
-    # Set up loop
-    total_entries = r["totalEntries"]
-    num_results = 0
-    while num_results < total_entries:
-        num_results += len(r["results"]["event"])
-        for event in r["results"]["event"]:
+    res = r.pop("results")
+    if "event" in res:
+        for event in res["event"]:
             d = {"artists": [], "event": event}
             for artist in event.pop("performance"):
                 results = spotify.search(artist["displayName"], type="artist")
                 while results:
                     for a in results["artists"]["items"]:
                         if (
-                            strip_accents(artist["displayName"]).lower()
-                            == strip_accents(a["name"]).lower()
+                            strip_accents(artist["displayName"])
+                            .lower()
+                            .replace("&", "and")
+                            == strip_accents(a["name"]).lower().replace("&", "and")
+                            or len(results["artists"]["items"]) == 1
                         ):
                             a["spotify"] = True
                             if a["images"]:
@@ -145,13 +140,12 @@ def fetch_artists():
                                 }
                             )
             l.append(d)
-        r["page"] += 1
-        r = requests.get(
-            "https://api.songkick.com/api/3.0/events.json", params=data
-        ).json()["resultsPage"]
-    cached_data = jsonify(l)
-    cache.set(key, cached_data)
-    return cached_data
+    if r["perPage"] * page <= r["totalEntries"]:
+        r["next"] = f"/bandstonight?location={location.split(':')[-1]}&page={page + 1}"
+    else:
+        r["next"] = None
+    r["results"] = l
+    return jsonify(r)
 
 
 @app.route("/callback/")
@@ -244,4 +238,4 @@ def strip_accents(text):
 
 
 if __name__ == "__main__":
-    app.run(debug=os.environ.get("DEBUG") != "False")
+    app.run(debug=True)

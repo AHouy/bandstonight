@@ -131,9 +131,9 @@ class User extends React.Component {
   }
 
   async fetchLocation() {
-    const data = await fetch(`/location?q=${this.state.location}`).then(res =>
-      res.json()
-    );
+    const data = await fetch(
+      `/location?q=${this.state.location.toLowerCase()}`
+    ).then(res => res.json());
     this.setState(state => {
       let result = { locations: data };
       if (data.length > 0) result.city = data[0].metroArea.id;
@@ -234,25 +234,29 @@ class Concert extends React.Component {
     this.state = { data: [], isLoading: false };
   }
 
-  async fetchConcert() {
+  async fetchConcert(endpt) {
     if (this.props.city) {
-      const data = await fetch(
-        `/bandstonight?location=${this.props.city}`
-      ).then(res => res.json());
-      this.setState({
-        data: data.sort((a, b) => {
-          let x = a.event.start.time;
-          let y = b.event.start.time;
-          if (x < y) {
-            return -1;
-          }
-          if (x > y) {
-            return 1;
-          }
-          return 0;
-        }),
-        isLoading: false
+      if (!endpt) endpt = `/bandstonight?location=${this.props.city}`;
+      const data = await fetch(endpt).then(res => res.json());
+      this.setState(state => {
+        return {
+          data: state.data.concat(
+            data.results.sort((a, b) => {
+              let x = a.event.start.time;
+              let y = b.event.start.time;
+              if (x < y) {
+                return -1;
+              }
+              if (x > y) {
+                return 1;
+              }
+              return 0;
+            })
+          )
+        };
       });
+      if (data.next) this.fetchConcert(data.next);
+      else this.setState({ isLoading: false });
     }
   }
 
@@ -262,50 +266,53 @@ class Concert extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (this.props.city !== prevProps.city) {
-      this.setState({ isLoading: true });
+      this.setState({ isLoading: true, data: [] });
       this.fetchConcert();
     }
   }
 
   render() {
+    let loader;
     if (this.state.isLoading)
-      return (
+      loader = (
         <div className="mt-2 mb-2">
           <h4 className="text-muted text-center">
-            Getting tonight's concerts and bands...
+            Getting tonight's {this.state.data.length > 0 ? "more " : ""}
+            concerts and bands...
           </h4>
           <div className="loader mx-auto" />
         </div>
       );
-    if (this.props.city) {
-      let stateOrCountry, location;
-      if (this.state.data.length !== 0) {
-        stateOrCountry =
-          this.state.data[0].event.venue.metroArea.state ||
-          this.state.data[0].event.venue.metroArea.country;
-        location =
-          this.state.data[0].event.venue.metroArea.displayName +
-          ", " +
-          stateOrCountry.displayName;
-      }
-      return (
-        <React.Fragment>
-          <SpotifyPlaylistGenerator
-            user={this.props.user}
-            location={location}
-            date={
-              this.state.data.length !== 0
-                ? this.state.data[0].event.start.date
-                : ""
-            }
-          />
-          {this.state.data.map(data => (
-            <ConcertInfo artists={data.artists} event={data.event} />
-          ))}
-        </React.Fragment>
-      );
+    let stateOrCountry, location;
+    if (this.state.data.length > 0) {
+      stateOrCountry =
+        this.state.data[0].event.venue.metroArea.state ||
+        this.state.data[0].event.venue.metroArea.country;
+      location =
+        this.state.data[0].event.venue.metroArea.displayName +
+        ", " +
+        stateOrCountry.displayName;
     }
-    return "";
+    return (
+      <React.Fragment>
+        {loader
+          ? loader
+          : this.state.data.length > 1 && (
+              <SpotifyPlaylistGenerator
+                user={this.props.user}
+                location={location}
+                date={
+                  this.state.data.length !== 0
+                    ? this.state.data[0].event.start.date
+                    : ""
+                }
+              />
+            )}
+        {this.state.data.map(data => (
+          <ConcertInfo artists={data.artists} event={data.event} />
+        ))}
+      </React.Fragment>
+    );
   }
 }
 
