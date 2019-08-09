@@ -1,24 +1,35 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { SpotifyUserContext } from "./components";
+import Main from "./Routes";
 
 function App() {
+  console.log(process.env);
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <div className="jumbotron">
+        <div className="container text-center">
+          <h1>Bands Tonight</h1>
+          <h4 className="text-muted">
+            Creating a Spotify playlist of the bands that are playing shows
+            tonight!
+          </h4>
+          <p style={{ fontSize: "100px" }}>
+            <a href="https://www.instagram.com/steeze_nasty/" target="_blank">
+              <i className="fa fa-instagram mr-3" />
+            </a>
+            <a href="https://github.com/AHouy/bandstonight" target="_blank">
+              <i className="fa fa-github" />
+            </a>
+          </p>
+          {/* <div class="alert alert-warning" role="alert">
+            Some concerts may not be listed or some information might not be
+            correct.
+          </div> */}
+        </div>
+      </div>
+      {/* <SpotifyUserContext.Provider> */}
+      <Main />
+      {/* </SpotifyUserContext.Provider> */}
     </div>
   );
 }

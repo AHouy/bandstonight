@@ -1,13 +1,52 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.loader {
+  border: 16px solid #f3f3f3; /* Light grey */
+  border-top: 16px solid #00bc8c; /* Blue */
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.fa {
+  background: rgb(0, 188, 140);
+  background: -moz-linear-gradient(
+    135deg,
+    rgba(0, 188, 140, 1) 25%,
+    rgba(9, 118, 121, 1) 50%,
+    rgba(0, 188, 140, 1) 75%
+  );
+  background: -webkit-linear-gradient(
+    135deg,
+    rgba(0, 188, 140, 1) 25%,
+    rgba(9, 118, 121, 1) 50%,
+    rgba(0, 188, 140, 1) 75%
+  );
+  background: linear-gradient(
+    135deg,
+    rgba(0, 188, 140, 1) 25%,
+    rgba(9, 118, 121, 1) 50%,
+    rgba(0, 188, 140, 1) 75%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: initial;
+}
+
+.jumbotron a {
+  text-decoration: none;
+}
+
+.react-datepicker-wrapper,
+.react-datepicker__input-container {
+  width: 100%;
 }
