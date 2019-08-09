@@ -1,6 +1,5 @@
 import React from "react";
-import { SpotifyUserContext } from "./components";
-import Main from "./Routes";
+import { Home, User, SpotifyUserContext } from "./components";
 
 function App() {
   console.log(process.env);
@@ -28,7 +27,9 @@ function App() {
         </div>
       </div>
       {/* <SpotifyUserContext.Provider> */}
-      <Main />
+      <div className="container">
+        <Home />
+      </div>
       {/* </SpotifyUserContext.Provider> */}
     </div>
   );
