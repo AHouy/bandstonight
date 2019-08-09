@@ -1,4 +1,5 @@
 import React from "react";
+import LazyLoad from "react-lazy-load";
 import SpotifyPlaylistGenerator from "./SpotifyPlaylistGenerator";
 
 export default class Concerts extends React.Component {
@@ -6,38 +7,44 @@ export default class Concerts extends React.Component {
     super(props);
 
     this.state = { data: [], isLoading: false };
-    this.controller = new AbortController();
   }
 
   async fetchConcert(endpt) {
     if (this.props.city) {
+      this.setState({ isLoading: true });
       if (!endpt)
         endpt = `/bandstonight?location=${this.props.city}&date=${
           this.props.date
         }`;
-      const data = await fetch(endpt, {
-        method: "get"
-        // signal: this.controller.signal
-      }).then(res => res.json());
-      this.setState(state => {
-        return {
-          data: state.data.concat(
-            data.results.sort((a, b) => {
-              let x = a.event.start.time;
-              let y = b.event.start.time;
-              if (x < y) {
-                return -1;
-              }
-              if (x > y) {
-                return 1;
-              }
-              return 0;
-            })
-          )
-        };
-      });
-      if (data.next) this.fetchConcert(data.next);
-      else this.setState({ isLoading: false });
+      const data = await fetch(endpt)
+        .then(res => {
+          if (res.url.includes(endpt)) return res.json();
+          else throw Error;
+        })
+        .catch(error => {
+          console.log(error);
+        });
+      if (data) {
+        this.setState(state => {
+          return {
+            data: state.data.concat(
+              data.results.sort((a, b) => {
+                let x = a.event.start.time;
+                let y = b.event.start.time;
+                if (x < y) {
+                  return -1;
+                }
+                if (x > y) {
+                  return 1;
+                }
+                return 0;
+              })
+            )
+          };
+        });
+        if (data.next) this.fetchConcert(data.next);
+        else this.setState({ isLoading: false });
+      }
     }
   }
 
@@ -50,8 +57,8 @@ export default class Concerts extends React.Component {
       this.props.city !== prevProps.city ||
       this.props.date !== prevProps.date
     ) {
-      if (this.state.isLoading) this.controller.abort();
-      this.setState({ isLoading: true, data: [] });
+      //   if (this.state.isLoading) this.controller.abort();
+      this.setState({ data: [] });
       this.fetchConcert();
     }
   }
@@ -141,43 +148,42 @@ function ConcertInfo(props) {
 function EventInfo(props) {
   let venue = props.event.venue;
   return (
-    <div className="row">
-      <div className="col-lg-8 order-lg-2">
+    <div>
+      <p>
+        Venue:{" "}
+        <a href={venue.uri} target="_blank">
+          {venue.displayName}
+        </a>
+      </p>
+      {venue.lat && (
         <p>
-          Venue:{" "}
-          <a href={venue.uri} target="_blank">
-            {venue.displayName}
+          Venue Location:{" "}
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${
+              venue.lat
+            },${venue.lng}`}
+            target="_blank"
+          >
+            Google Maps
           </a>
         </p>
-        <p>
-          Age restrictions:{" "}
-          {props.event.ageRestriction
-            ? props.event.ageRestriction
-            : "No age restrictions"}
-        </p>
-        <p>
-          {props.event.start &&
-            props.event.start.datetime &&
-            "Starts at: " +
-              new Date(props.event.start.datetime).toLocaleString()}
-        </p>
-        <p>
-          {props.event.end &&
-            props.event.end.datetime &&
-            "End: " + new Date(props.event.end.datetime).toLocaleString()}
-        </p>
-      </div>
-      <div className="col-lg-4 order-lg-1">
-        <div className="embed-responsive embed-responsive-16by9">
-          <iframe
-            className="embed-responsive-item"
-            src={`https://www.google.com/maps/embed/v1/place?q=${venue.lat},${
-              venue.lng
-            }&key=AIzaSyC8YmxLx9irSjE36I8rbA-hgJgD46q9H-U`}
-            allowfullscreen
-          />
-        </div>
-      </div>
+      )}
+      <p>
+        Age restrictions:{" "}
+        {props.event.ageRestriction
+          ? props.event.ageRestriction
+          : "No age restrictions"}
+      </p>
+      <p>
+        {props.event.start &&
+          props.event.start.datetime &&
+          "Starts at: " + new Date(props.event.start.datetime).toLocaleString()}
+      </p>
+      <p>
+        {props.event.end &&
+          props.event.end.datetime &&
+          "End: " + new Date(props.event.end.datetime).toLocaleString()}
+      </p>
     </div>
   );
 }
@@ -207,12 +213,14 @@ class Artist extends React.Component {
               }
               dataSpotifyId={this.props.artist.id}
             >
-              <img
-                className="mr-3"
-                src={this.props.artist.image}
-                alt={this.props.artist.name}
-                width="100px"
-              />
+              <LazyLoad>
+                <img
+                  className="mr-3"
+                  src={this.props.artist.image}
+                  alt={this.props.artist.name}
+                  width="100px"
+                />
+              </LazyLoad>
               <div className="media-body">
                 <h5 className="mt-0">
                   <a
