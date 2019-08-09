@@ -17,8 +17,7 @@ export default class SpotifyLoginButton extends React.Component {
     var url = "https://accounts.spotify.com/authorize";
     url += "?response_type=token";
     url +=
-      "&client_id=" +
-      encodeURIComponent(process.env.REACT_APP_ENV_SPOTIFY_CLIENT_ID);
+      "&client_id=" + encodeURIComponent("1f7907c2586b42bdb2f62ec317dfff13");
     url += "&scope=" + encodeURIComponent(scope);
     url += "&redirect_uri=" + encodeURIComponent(redirect_uri);
     url += "&state=" + encodeURIComponent(state);
