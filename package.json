@@ -45,8 +45,10 @@
     "postcss-safe-parser": "4.0.1",
     "react": "^16.8.6",
     "react-app-polyfill": "^1.0.1",
+    "react-datepicker": "^2.8.0",
     "react-dev-utils": "^9.0.1",
     "react-dom": "^16.8.6",
+    "react-router-dom": "^5.0.1",
     "resolve": "1.10.0",
     "sass-loader": "7.1.0",
     "semver": "6.0.0",
@@ -60,7 +62,7 @@
     "workbox-webpack-plugin": "4.2.0"
   },
   "scripts": {
-    "start": "node scripts/start.js",
+    "start": "concurrently --kill-others \"node scripts/start.js\" \"app.py\"",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js"
   },
@@ -130,6 +132,7 @@
     ]
   },
   "devDependencies": {
+    "concurrently": "^4.1.1",
     "webpack-bundle-tracker": "^0.4.2-beta"
   }
 }
