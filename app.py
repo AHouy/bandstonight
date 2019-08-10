@@ -16,7 +16,7 @@ app = Flask(__name__)
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
 webpack = WebpackLoader(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URI", "sqlite:///./db.sqlite3"
+    "DATABASE_URL", "sqlite:///./db.sqlite3"
 )
 db = SQLAlchemy(app)
 spotify = Spotify(client_credentials_manager=SpotifyClientCredentials())
