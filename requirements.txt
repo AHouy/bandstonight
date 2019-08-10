@@ -1,6 +1,7 @@
 eventbrite==3.3.3
 Flask==1.1.1
 Flask-Caching==1.7.2
+Flask-SQLAlchemy==2.4.0
 flask-webpack-loader==0.0.4
 gunicorn==19.9.0
 requests==2.22.0
