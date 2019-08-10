@@ -4,5 +4,6 @@ Flask-Caching==1.7.2
 Flask-SQLAlchemy==2.4.0
 flask-webpack-loader==0.0.4
 gunicorn==19.9.0
+psycopg2==2.8.3
 requests==2.22.0
 spotipy==2.4.4
