@@ -7,6 +7,7 @@ import requests
 from eventbrite import Eventbrite
 from flask import Flask, jsonify, render_template, request
 from flask_caching import Cache
+from flask_sqlalchemy import SQLAlchemy
 from flask_webpack_loader import WebpackLoader
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -14,8 +15,28 @@ from spotipy.oauth2 import SpotifyClientCredentials
 app = Flask(__name__)
 cache = Cache(app, config={"CACHE_TYPE": "simple"})
 webpack = WebpackLoader(app)
-eventbrite = Eventbrite(os.environ.get("EVENTBRITE_API_KEY"))
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URI", "sqlite:///./db.sqlite3"
+)
+db = SQLAlchemy(app)
 spotify = Spotify(client_credentials_manager=SpotifyClientCredentials())
+
+
+# Models
+
+
+class Artist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)  # Name of the artist
+    url = db.Column(db.String)  # URL linking to spotify page
+    genres = db.Column(db.PickleType)  # Genres
+    image = db.Column(db.String)  # Image of the artist
+    spotifyId = db.Column(db.String)  # Spotify ID
+    songkickId = db.Column(db.Integer)  # Songkick ID
+    mbid = db.Column(db.String)  # MusicBrainz ID
+
+
+# Views
 
 
 @app.route("/", defaults={"path": None})
@@ -98,6 +119,7 @@ def fetch_artists():
         "min_date": day,
         "max_date": day,
         "page": page,
+        "per_page": 10,
     }
     r = requests.get(
         "https://api.songkick.com/api/3.0/events.json", params=data
@@ -110,34 +132,20 @@ def fetch_artists():
         for event in res["event"]:
             d = {"artists": [], "event": event}
             for artist in event.pop("performance"):
-                results = spotify.search(artist["displayName"], type="artist")
-                while results:
-                    for a in results["artists"]["items"]:
-                        if (
-                            strip_accents(artist["displayName"])
-                            .lower()
-                            .replace("&", "and")
-                            == strip_accents(a["name"]).lower().replace("&", "and")
-                            or len(results["artists"]["items"]) == 1
-                        ):
-                            a["spotify"] = True
-                            if a["images"]:
-                                a["image"] = a.pop("images")[0]["url"]
-                            else:
-                                a["image"] = "https://via.placeholder.com/100"
-                            d["artists"].append(a)
-                            results = None
-                            break
-                    else:
-                        results = spotify.next(results) if "next" in results else None
-                        if not results:
-                            d["artists"].append(
-                                {
-                                    "name": artist["displayName"],
-                                    "spotify": False,
-                                    "image": "https://via.placeholder.com/100",
-                                }
-                            )
+                a = Artist.query.filter_by(songkickId=artist["artist"]["id"]).first()
+                if not a:
+                    a = search_spotify_artist(artist)
+                else:
+                    a = {
+                        "name": a.name,
+                        "url": a.url,
+                        "genres": a.genres,
+                        "image": a.image,
+                        "spotifyId": a.spotifyId,
+                        "songkickId": a.songkickId,
+                        "spotify": True,
+                    }
+                d["artists"].append(a)
             l.append(d)
     if r["perPage"] * page <= r["totalEntries"]:
         r[
@@ -147,6 +155,50 @@ def fetch_artists():
         r["next"] = None
     r["results"] = l
     return jsonify(r)
+
+
+def search_spotify_artist(artist):
+    results = spotify.search(artist["displayName"], type="artist")
+    while results:
+        for a in results["artists"]["items"]:
+            if strip_accents(artist["displayName"]).lower().replace(
+                "&", "and"
+            ) == strip_accents(a["name"]).lower().replace("&", "and"):
+                a["spotify"] = True
+                if a["images"]:
+                    a["image"] = a.pop("images")[0]["url"]
+                else:
+                    a["image"] = "https://via.placeholder.com/100"
+                a["url"] = a.pop("external_urls")["spotify"]
+                a["spotifyId"] = a.pop("id")
+
+                # Add artist to the database
+                db.session.add(
+                    Artist(
+                        name=a["name"],
+                        url=a["url"],
+                        genres=a["genres"],
+                        image=a["image"],
+                        spotifyId=a["spotifyId"],
+                        songkickId=artist["artist"]["id"],
+                        # mbid=artist["artist"]["identifier"][0]["mbid"],
+                    )
+                )
+                db.session.commit()
+
+                # Exit the while and for loop
+                results = None
+                break
+        else:  # Still haven't found artist
+            # Search some more
+            results = spotify.next(results) if "next" in results else None
+            if not results:  # Not able to search some more
+                a = {
+                    "name": artist["displayName"],
+                    "spotify": False,
+                    "image": "https://via.placeholder.com/100",
+                }
+    return a
 
 
 @app.route("/callback/")

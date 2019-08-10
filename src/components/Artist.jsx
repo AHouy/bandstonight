@@ -24,7 +24,7 @@ export default class Artist extends React.Component {
               className={
                 this.state.include ? "media mt-3 artist" : "media mt-3"
               }
-              dataSpotifyId={this.props.artist.id}
+              dataSpotifyId={this.props.artist.spotifyId}
             >
               <LazyLoad>
                 <img
@@ -36,10 +36,7 @@ export default class Artist extends React.Component {
               </LazyLoad>
               <div className="media-body">
                 <h5 className="mt-0">
-                  <a
-                    href={this.props.artist.external_urls.spotify}
-                    target="_blank"
-                  >
+                  <a href={this.props.artist.url} target="_blank">
                     {this.props.artist.name}
                   </a>
                 </h5>
